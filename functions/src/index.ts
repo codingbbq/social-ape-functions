@@ -38,14 +38,45 @@ app.get('/screams', (request: any, response: any) => {
     });
 });
 
+const FBAuth = (request: any, response: any, next: any) => {
+    let idToken;
+    const db = admin.firestore().collection('users');
+    if(request.headers.authorization && request.headers.authorization.startsWith('Bearer ')) {
+        idToken = request.headers.authorization.split('Bearer ')[1];
+    } else {
+        console.error("No token found");
+        return response.status(401).json({
+            error: 'Unauthorized'
+        });
+    }
+
+    admin.auth().verifyIdToken(idToken)
+        .then((decodedToken) => {
+            request.user = decodedToken;
+            console.log(decodedToken);
+            return db
+            .where('userId', '==', request.user.uid)
+            .limit(1)
+            .get();
+        })
+        .then((data) => {
+            request.user.handle = data.docs[0].data().handle;
+            return next();
+        })
+        .catch((error) => {
+            console.error("Error verifying the token", error);
+            return response.status(403).json(error);
+        });
+}
+
 
 // Create a Scream
-app.post('/scream', (request: any, response: any) => {
+app.post('/scream', FBAuth, (request: any, response: any) => {
 
     const db = admin.firestore().collection('screams');
-    const newScream : { body: string, userHandle: string, createdDate: any } = {
+    const newScream : { body: string, handle: string, createdDate: any } = {
         body: request.body.body,
-        userHandle: request.body.userHandle,
+        handle: request.user.handle,
         createdDate: admin.firestore.Timestamp.fromDate(new Date())
     }
 
