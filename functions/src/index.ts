@@ -1,6 +1,9 @@
 import * as functions from 'firebase-functions';
 import admin = require('firebase-admin');
-const serviceAccount = require('../keys/pets-app-4ad91-firebase-adminsdk-g5a3t-06168b6603.json');
+import { User, Error } from './models/datatypes';
+import { isEmail, isEmpty } from './helpers/utils';
+
+const serviceAccount = require('../keys/serviceaccount.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -8,18 +11,11 @@ admin.initializeApp({
 });
 
 import firebase = require('firebase');
-const firebaseConfig = {
-    apiKey: "AIzaSyBNGvsDJknLWlAT-f-J0IoYqCIyn7tfwM4",
-    authDomain: "pets-app-4ad91.firebaseapp.com",
-    databaseURL: "https://pets-app-4ad91.firebaseio.com",
-    projectId: "pets-app-4ad91",
-    storageBucket: "pets-app-4ad91.appspot.com",
-    messagingSenderId: "907089114990",
-    appId: "1:907089114990:web:fe58f615e736287d23b37f"
-};
+const firebaseConfig = require('../keys/firebaseConfig.json');
 firebase.initializeApp(firebaseConfig);
 
 import express = require('express');
+
 const app = express();
 
 app.get('/screams', (request: any, response: any) => {
@@ -74,18 +70,128 @@ app.post('/signup', (request: any, response: any) => {
         handle: request.body.handle
     };
 
-    firebase.auth().createUserWithEmailAndPassword(newUser.email, newUser.password)
+    const errors: Error = {};
+
+
+    if(isEmpty(newUser.email)) {
+        errors.email = "Email should not be empty";
+    } else if( !isEmail(newUser.email)) {
+        errors.email = "Please usea valid email";
+    }
+
+    if(isEmpty(newUser.password)) {
+        errors.password = "Must not be empty";
+    }
+
+    if(newUser.password !== newUser.confirmPassword) {
+        errors.password = "Passwords must match";
+    }
+
+    if(isEmpty(newUser.handle)) {
+        errors.handle = "Handle must not be empty";
+    }
+
+    if(Object.keys(errors).length > 0){
+        response.status(400).json(errors);
+    }
+
+    const db = admin.firestore();
+    let token: any;
+    let userId: any;
+        db.doc(`/users/${newUser.handle}`)
+        .get()
+        .then((doc) => {
+            console.log(doc);
+            if(doc.exists) {
+                return response.status(400).json({
+                    handle: "This handle is already taken"
+                })
+            }else {
+                return firebase
+                .auth()
+                .createUserWithEmailAndPassword(newUser.email, newUser.password);
+            }
+        })
         .then((data) => {
+            userId = data.user?.uid;
+            return data.user?.getIdToken();
+        })
+        .then((tokenId) => {
+            token = tokenId;
+            const userCredentials = {
+                handle : newUser.handle,
+                email: newUser.email,
+                createdDate: new Date().toISOString(),
+                userId
+            }
+
+            return db.doc(`/users/${newUser.handle}`).set(userCredentials);
+        })
+        .then(() => {
             return response.status(201).json({
-                message: `user ${data.user?.uid} signed up successfully`
+                token
             });
         })
         .catch((error) => {
             console.error(error);
-            return response.status(500).json({
-                error: error.code
-            });
+            if( error.code === 'auth/email-already-in-use') {
+                return response.status(400).json({
+                    email: "Email already in use"
+                });
+            }else {
+                return response.status(500).json({
+                    error: error.code  
+                });
+            }
         })
+    });
+
+// Login API
+app.post('/login', (request: any, response: any) => {
+    // ToDo : Create a user infreface
+    const user: User = {
+        email: request.body.email,
+        password: request.body.password
+    }
+
+    // ToDo : Create a errors interface
+    const errors: Error = {};
+
+    if(isEmpty(user.email)) {
+        errors.email = "Must not be empty";
+    }
+
+    if(isEmpty(user.password)) {
+        errors.password = "Must not be empty;"
+    }
+
+    if(Object.keys(errors).length > 0) {
+        return response.status(400).json({
+            errors
+        });
+    }
+
+    firebase
+        .auth()
+        .signInWithEmailAndPassword(user.email, user.password)
+        .then((data) => {
+            return data.user?.getIdToken();
+        })
+        .then((idToken) => {
+            return response.json({ idToken});
+        })
+        .catch((error) => {
+            console.error(error);
+            if(error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                return response.status(403).json({
+                    error : "username or password incorrect"
+                });
+            } else {
+                return response.status(500).json({
+                    error: error.code
+                });  
+            }
+        });
 })
 
 exports.api = functions.https.onRequest(app);
