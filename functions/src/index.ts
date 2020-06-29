@@ -7,7 +7,7 @@ const { PostScream } = require('./endpoints/PostScream');
 const { SignUp } = require('./endpoints/SignUp');
 const { Login } = require('./endpoints/Login');
 const { FBAuth } = require('./endpoints/FBAuth');
-
+const { UploadImg } = require('./endpoints/UploadImg');
 
 import firebase = require('firebase');
 const firebaseConfig = require('../keys/firebaseConfig.json');
@@ -26,5 +26,8 @@ app.post('/signup', SignUp);
 
 // Login API
 app.post('/login', Login);
+
+// Upload image
+app.post('/users/image', FBAuth, UploadImg);
 
 exports.api = functions.https.onRequest(app);

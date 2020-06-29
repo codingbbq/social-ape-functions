@@ -1,4 +1,5 @@
 export{};
+const firebaseConfig = require('../../keys/firebaseConfig.json');
 import { UserModel } from '../models/datatypes';
 const { ValidateSignUp } = require('../helpers/validateSignUp');
 
@@ -18,7 +19,8 @@ exports.SignUp = (request: any, response: any) => {
     if(!valid) {
         response.status(400).json(errors);
     }
-            
+    
+    const noImg: string = 'noImg.jpg';
     let token: any;
     let userId: any;
         db.doc(`/users/${newUser.handle}`)
@@ -45,7 +47,8 @@ exports.SignUp = (request: any, response: any) => {
                 handle : newUser.handle,
                 email: newUser.email,
                 createdAt: new Date().toISOString(),
-                userId
+                userId,
+                imageUrl : `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/${noImg}?alt=media`
             }
 
             return db.doc(`/users/${newUser.handle}`).set(userCredentials);
