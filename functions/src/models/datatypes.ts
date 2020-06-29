@@ -8,8 +8,3 @@ export interface Error {
     password?: string;
     handle?: string;
 }
-
-// export interface Utilities {
-//     isEmpty: (str: string) => boolean;
-//     isEmail: (str: string) => boolean;
-// }
