@@ -8,3 +8,10 @@ export interface Error {
     password?: string;
     handle?: string;
 }
+
+export interface UserModel {
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    handle?: string;
+}

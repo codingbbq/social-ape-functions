@@ -3,8 +3,9 @@ export{};
 import firebase = require('firebase');
 
 // Interfaces
-import { User, Error } from '../models/datatypes';
-import { isEmpty } from '../helpers/utils';
+import { User } from '../models/datatypes';
+
+const { ValidateLogin } = require('../helpers/validateLogin');
 
 exports.Login = (request: any, response: any) => {
 
@@ -13,20 +14,10 @@ exports.Login = (request: any, response: any) => {
         password: request.body.password
     }
 
-    const errors: Error = {};
+    const { valid, errors } = ValidateLogin(user);
 
-    if(isEmpty(user.email)) {
-        errors.email = "Must not be empty";
-    }
-
-    if(isEmpty(user.password)) {
-        errors.password = "Must not be empty;"
-    }
-
-    if(Object.keys(errors).length > 0) {
-        return response.status(400).json({
-            errors
-        });
+    if(!valid) {
+        return response.stats(400).json(errors);
     }
 
     firebase

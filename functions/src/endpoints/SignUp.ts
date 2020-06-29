@@ -1,41 +1,24 @@
 export{};
-import { isEmail, isEmpty } from '../helpers/utils';
-import { Error } from '../models/datatypes';
+import { UserModel } from '../models/datatypes';
+const { ValidateSignUp } = require('../helpers/validateSignUp');
+
 const { db } = require('../helpers/admin');
 import firebase = require('firebase');
 
 exports.SignUp = (request: any, response: any) => {
-    const newUser = {
+    const newUser: UserModel = {
         email : request.body.email,
         password: request.body.password,
         confirmPassword: request.body.confirmPassword,
         handle: request.body.handle
     };
 
-    const errors: Error = {};
+    const { valid, errors } = ValidateSignUp(newUser);
 
-
-    if(isEmpty(newUser.email)) {
-        errors.email = "Email should not be empty";
-    } else if( !isEmail(newUser.email)) {
-        errors.email = "Please usea valid email";
-    }
-
-    if(isEmpty(newUser.password)) {
-        errors.password = "Must not be empty";
-    }
-
-    if(newUser.password !== newUser.confirmPassword) {
-        errors.password = "Passwords must match";
-    }
-
-    if(isEmpty(newUser.handle)) {
-        errors.handle = "Handle must not be empty";
-    }
-
-    if(Object.keys(errors).length > 0){
+    if(!valid) {
         response.status(400).json(errors);
     }
+            
     let token: any;
     let userId: any;
         db.doc(`/users/${newUser.handle}`)
@@ -49,7 +32,7 @@ exports.SignUp = (request: any, response: any) => {
             }else {
                 return firebase
                 .auth()
-                .createUserWithEmailAndPassword(newUser.email, newUser.password);
+                .createUserWithEmailAndPassword(newUser.email!, newUser.password!);
             }
         })
         .then((data: any) => {
