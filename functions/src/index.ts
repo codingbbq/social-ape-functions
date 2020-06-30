@@ -8,6 +8,7 @@ const { SignUp } = require('./endpoints/SignUp');
 const { Login } = require('./endpoints/Login');
 const { FBAuth } = require('./endpoints/FBAuth');
 const { UploadImg } = require('./endpoints/UploadImg');
+const { UserDetails } = require('./endpoints/UserDetails');
 
 import firebase = require('firebase');
 const firebaseConfig = require('../keys/firebaseConfig.json');
@@ -26,6 +27,9 @@ app.post('/signup', SignUp);
 
 // Login API
 app.post('/login', Login);
+
+// User details
+app.post('/user', FBAuth, UserDetails);
 
 // Upload image
 app.post('/users/image', FBAuth, UploadImg);
