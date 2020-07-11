@@ -24,6 +24,7 @@ exports.FBAuth = (request: any, response: any, next: any) => {
         })
         .then((data: any) => {
             request.user.handle = data.docs[0].data().handle;
+            request.user.imageUrl = data.docs[0].data().imageUrl;
             return next();
         })
         .catch((error: any) => {
